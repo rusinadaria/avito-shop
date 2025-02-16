@@ -5,10 +5,12 @@ import (
 	"net/http"
 	"github.com/go-chi/chi"
 	"github.com/golang-jwt/jwt"
-	// "encoding/json"
-	// "avito-shop/models"
-	// "log"
+	"log/slog"
+	// "avito-shop/internal/handlers/middleware"
+	"avito-shop/internal/common"
 )
+
+const signingKey = "qrkjk#4#%35FSFJlja#4353KSFjH"
 
 type Handler struct {
 	services *services.Service
@@ -22,18 +24,18 @@ func (h *Handler) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("auth_token")
 		if err != nil {
-			http.Error(w, "Токен не найден", http.StatusUnauthorized)
+			common.WriteErrorResponse(w, http.StatusUnauthorized, "Токен не найден")
 			return
 		}
 
 		tokenString := cookie.Value
 		claims := &jwt.MapClaims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte("qrkjk#4#%35FSFJlja#4353KSFjH"), nil
+			return []byte(signingKey), nil
 		})
 
 		if err != nil || !token.Valid {
-			http.Error(w, "Необходима аутентификация!", http.StatusUnauthorized)
+			common.WriteErrorResponse(w, http.StatusUnauthorized, "Неавторизован")
 			return
 		}
 
@@ -41,15 +43,18 @@ func (h *Handler) AuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (h *Handler) InitRoutes() http.Handler {
+func (h *Handler) InitRoutes(logger *slog.Logger) http.Handler {
 	r := chi.NewRouter()
 
+	r.Use(LoggerMiddlewareWrapper(logger))
+
 	r.Group(func(r chi.Router) {
-		r.Post("/api/auth", h.addUserHandler)
+		r.Post("/api/auth", h.AddUserHandler)
 
 		r.With(h.AuthMiddleware).Group(func(r chi.Router) {
+		// r.With(middleware.AuthMiddleware(h)).Group(func(r chi.Router) {
 			r.Get("/api/info", h.InfoHandler)
-			// r.Get("/api/buy/{item}", )
+			r.Get("/api/buy/{item}", h.BuyItemHandler)
 			r.Post("/api/sendCoin", h.SendHandler)
 		})
 	})

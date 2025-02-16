@@ -3,9 +3,7 @@ package handlers
 import (
 	"avito-shop/models"
 	"encoding/json"
-	// "fmt"
 	"net/http"
-	"log"
 	"time"
 )
 
@@ -16,48 +14,43 @@ func setTokenCookie(w http.ResponseWriter, token string) {
 		Path:     "/",
 		Expires:  time.Now().Add(24 * time.Hour),
 		HttpOnly: true,     
-		Secure:   true,
+		Secure:   false,
 	}
 
 	http.SetCookie(w, cookie)
 }
 
-func (h *Handler) addUserHandler (w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	if r.Method != http.MethodPost {
-		http.Error(w, "Метод не разрешен", http.StatusMethodNotAllowed)
-		return
-	}
+func (h *Handler) AddUserHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
-	var user models.AuthRequest
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, "Неверный запрос", http.StatusBadRequest)
-		return
-	}
+    var user models.AuthRequest
+	var userID int
+    if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+        writeErrorResponse(w, http.StatusBadRequest, "Неверный запрос")
+        return
+    }
 
-	_, err := h.services.GetUser(user.Username, user.Password)
-	if err == nil {
-		token, err := h.services.GenerateToken(user.Username, user.Password)
-		if err != nil {
-			http.Error(w, "Не удалось сгенерировать токен для пользователя", http.StatusBadRequest)
-		}
-		setTokenCookie(w, token)
-	}
+    _, err := h.services.FindUser(user.Username)
+    if err != nil {
+        userID, err = h.services.CreateUser(user.Username, user.Password)
+        if err != nil {
+            writeErrorResponse(w, http.StatusInternalServerError, "Не удалось создать пользователя")
+            return
+        }
+    } else {
+        userID, err = h.services.SignIn(user.Username, user.Password)
+        if err != nil {
+            writeErrorResponse(w, http.StatusUnauthorized, "Неавторизован")
+            return
+        }
+    }
 
-	id, err := h.services.Auth.CreateUser(user.Username, user.Password)
-	if err != nil {
-		log.Println("Ошибка при добавлении пользователя:", err)
-		http.Error(w, "Ошибка при добавлении пользователя", http.StatusInternalServerError)
-		return
-	}
-	user.Id = id
+    token, err := h.services.GenerateToken(userID)
+    if err != nil {
+        writeErrorResponse(w, http.StatusInternalServerError, "Не удалось сгенерировать токен для пользователя")
+        return
+    }
+    setTokenCookie(w, token)
 
-	token, err := h.services.GenerateToken(user.Username, user.Password)
-	if err != nil {
-		http.Error(w, "Не удалось сгенерировать токен для пользователя", http.StatusBadRequest)
-	}
-	setTokenCookie(w, token)
-
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(user)
+    w.WriteHeader(http.StatusOK)
 }

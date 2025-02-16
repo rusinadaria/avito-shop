@@ -16,6 +16,12 @@ type Wallet struct {
 	Coins int
 }
 
+type Item struct {
+	Id int
+	Name string
+	Price int
+}
+
 type ErrorResponse  struct {
 	Errors string `json:"errors"`
 }
@@ -44,7 +50,6 @@ type InfoResponse struct {
 	Coins int `json:"coins"`
 	Inventory []Inventory `json:"inventory"`
 	CoinHistory []CoinHistory `json:"coinHistory"`
-	Sent []Sent `json:"sent"`
 }
 
 type SendCoinRequest struct {

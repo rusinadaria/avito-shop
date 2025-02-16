@@ -3,13 +3,15 @@ package services
 import (
 	"avito-shop/internal/repository"
 	"avito-shop/models"
-	// "errors"
-	"golang.org/x/crypto/bcrypt"
+	"errors"
 	"log"
 	"time"
+
 	"github.com/golang-jwt/jwt"
-	// "fmt"
+	"golang.org/x/crypto/bcrypt"
 )
+
+const signingKey = "qrkjk#4#%35FSFJlja#4353KSFjH"
 
 type AuthService struct {
 	repo repository.Authorization
@@ -19,33 +21,26 @@ func NewAuthService(repo repository.Authorization) *AuthService {
 	return &AuthService{repo: repo}
 }
 
-func (s *AuthService) GetUser(username string, password string) (int, error) {
-	user := models.AuthRequest {
-		Username: username,
-		Password: password,
-	}
-	id, err := s.repo.FindUser(user)
-	if err != nil {
-		log.Println("Невозможно найти пользователя с таким именем")
-		return 0, err
-	}
-
-	if !checkPasswordHash(password, user.Password) {
-		log.Println("Неверный пароль для пользователя:", username)
-		return 0, err
-	}
-	return id, nil
+func (s *AuthService) FindUser(username string) (int, error) {
+    return s.repo.GetUserID(username)
 }
 
-func checkPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
+func (s *AuthService) SignIn(username string, password string) (int, error) {
+	hashPassword, err := s.repo.GetUserPassword(username)
+	if err != nil {
+		return 0, err
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(hashPassword), []byte(password)); err != nil {
+		return 0, err
+	}
+
+	return s.repo.GetUserID(username)
 }
 
 func (s *AuthService) CreateUser(username string, password string) (int, error) {
 	password, err := hashPassword(password)
 	if err != nil {
-		log.Println("Не удалось захэшировать пароль")
 		return 0, err 
 	}
 	user := models.AuthRequest {
@@ -55,6 +50,7 @@ func (s *AuthService) CreateUser(username string, password string) (int, error) 
 
 	id, err := s.repo.CreateUser(user)
 	if err != nil {
+		log.Println("Не удалось добавить пользователя в базу")
 		return 0, err
 	}
 
@@ -63,8 +59,8 @@ func (s *AuthService) CreateUser(username string, password string) (int, error) 
 	}
 	err = s.repo.AddCoins(user_wallet)
 	if err != nil {
-		log.Println("Ошибка при зачислении коинов")
-		return 0, nil
+		log.Println("Ошибка при начислении коинов")
+		return 0, err
 	}
 
 	return id, nil
@@ -73,7 +69,6 @@ func (s *AuthService) CreateUser(username string, password string) (int, error) 
 func hashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		log.Println("Ошибка при хешировании пароля:", err)
 		return "", err
 	}
 	return string(hash), nil
@@ -85,24 +80,34 @@ type tokenClaims struct {
 }
 
 
-func (s *AuthService) GenerateToken(username string, password string) (string, error) {
-	user := models.AuthRequest {
-		Username: username,
-		Password: password,
-	}
-	id, err := s.repo.FindUser(user)
-	if err != nil {
-		log.Println("Пользователя с таким именем не существует")
-		return "", err
-	}
+func (s *AuthService) GenerateToken(userID int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(12 * time.Hour).Unix(),
 			IssuedAt:  time.Now().Unix(),
 		},
-		id,
+		userID,
 	})
-	signingKey := "qrkjk#4#%35FSFJlja#4353KSFjH"
 
 	return token.SignedString([]byte(signingKey))
+}
+
+func (s *AuthService) ParseToken(accessToken string) (int, error) {
+	token, err := jwt.ParseWithClaims(accessToken, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("invalid signing method")
+		}
+
+		return []byte(signingKey), nil
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	claims, ok := token.Claims.(*tokenClaims)
+	if !ok {
+		return 0, errors.New("token claims are not of type *tokenClaims")
+	}
+
+	return claims.UserId, nil
 }

@@ -1,24 +1,29 @@
 package main
 
 import (
-	// "fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"log"
-	// "database/sql"
 	_"github.com/lib/pq"
-		// "encoding/json"
-			"avito-shop/internal/handlers"
+	"avito-shop/internal/handlers"
 	"avito-shop/internal/services"
-		"avito-shop/internal/repository"
-
+	"avito-shop/internal/repository"
+	"fmt"
+	// "github.com/joho/godotenv"
 )
 
 func main() {
 	logger := configLogger()
 
-	db, err := repository.ConnectDatabase(logger)
+	// err := godotenv.Load()
+    // if err != nil {
+    //     log.Fatal("Ошибка загрузки .env файла")
+    // }
+
+	storage_path := os.Getenv("DB_PATH")
+	// fmt.Println("DB_PATH:", storage_path)
+	db, err := repository.ConnectDatabase(storage_path, logger)
 	if err != nil {
 		log.Fatal("Не удалось подключиться к базе данных:", err)
 	}
@@ -28,11 +33,12 @@ func main() {
 	handler := handlers.NewHandler(srv)
 
 	port := os.Getenv("PORT")
+	fmt.Println("PORT:", port)
 	if port == "" {
 		port = ":8080"
 	}
 
-	err = http.ListenAndServe(port, handler.InitRoutes())
+	err = http.ListenAndServe(port, handler.InitRoutes(logger))
 	if err != nil {
 		log.Fatal("Не удалось запустить сервер:", err)
 	}
