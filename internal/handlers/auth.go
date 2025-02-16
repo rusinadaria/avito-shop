@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"avito-shop/models"
+    "avito-shop/internal/common"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -26,7 +27,7 @@ func (h *Handler) AddUserHandler(w http.ResponseWriter, r *http.Request) {
     var user models.AuthRequest
 	var userID int
     if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-        writeErrorResponse(w, http.StatusBadRequest, "Неверный запрос")
+        common.WriteErrorResponse(w, http.StatusBadRequest, "Неверный запрос")
         return
     }
 
@@ -34,20 +35,20 @@ func (h *Handler) AddUserHandler(w http.ResponseWriter, r *http.Request) {
     if err != nil {
         userID, err = h.services.CreateUser(user.Username, user.Password)
         if err != nil {
-            writeErrorResponse(w, http.StatusInternalServerError, "Не удалось создать пользователя")
+            common.WriteErrorResponse(w, http.StatusInternalServerError, "Не удалось создать пользователя")
             return
         }
     } else {
         userID, err = h.services.SignIn(user.Username, user.Password)
         if err != nil {
-            writeErrorResponse(w, http.StatusUnauthorized, "Неавторизован")
+            common.WriteErrorResponse(w, http.StatusUnauthorized, "Неавторизован")
             return
         }
     }
 
     token, err := h.services.GenerateToken(userID)
     if err != nil {
-        writeErrorResponse(w, http.StatusInternalServerError, "Не удалось сгенерировать токен для пользователя")
+        common.WriteErrorResponse(w, http.StatusInternalServerError, "Не удалось сгенерировать токен для пользователя")
         return
     }
     setTokenCookie(w, token)

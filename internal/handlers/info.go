@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"avito-shop/internal/common"
 	"net/http"
 	"encoding/json"
 )
@@ -10,19 +11,19 @@ func (h *Handler) InfoHandler (w http.ResponseWriter, r *http.Request) { // По
 
 	cookie, err := r.Cookie("auth_token")
 	if err != nil {
-		writeErrorResponse(w, http.StatusBadRequest, "Ошибка при попытке получить cookies")
+		common.WriteErrorResponse(w, http.StatusBadRequest, "Ошибка при попытке получить cookies")
 		return
 	}
 
 	id, err := h.services.ParseToken(cookie.Value)
 	if err != nil {
-		writeErrorResponse(w, http.StatusInternalServerError, "Ошибка при попытке распарсить cookies")
+		common.WriteErrorResponse(w, http.StatusInternalServerError, "Ошибка при попытке распарсить cookies")
 		return
 	}
 
 	info, err := h.services.UserInfo(id)
 	if err != nil {
-		writeErrorResponse(w, http.StatusInternalServerError, "Не удалось получить информацию о пользователе")
+		common.WriteErrorResponse(w, http.StatusInternalServerError, "Не удалось получить информацию о пользователе")
 		return
 	}
 
