@@ -15,16 +15,6 @@ func NewTransactionPostgres(db *sql.DB) *TransactionPostgres {
 	return &TransactionPostgres{db: db}
 }
 
-func (t *TransactionPostgres) GetUserById(user models.AuthRequest) (int, error) {
-	var id int
-	err := t.db.QueryRow(`SELECT id FROM "user" WHERE username = $1`, user.Username).Scan(&id)
-	if err != nil {
-		log.Println("Пользователь с таким именем не существует:", err)
-		return 0, err
-	}
-	return id, nil
-}
-
 func (t *TransactionPostgres) SendCoin(fromUserId int, req models.SendCoinRequest) error {
 	tx, err := t.db.Begin()
 	if err != nil {

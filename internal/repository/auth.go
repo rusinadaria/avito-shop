@@ -33,15 +33,6 @@ func (r *AuthPostgres) GetUserID(username string) (int, error) {
 	return id, nil
 }
 
-func (r *AuthPostgres) GetUser(username string, password string) (int, error) {
-	var id int
-	err := r.db.QueryRow(`SELECT id FROM "user" WHERE username = $1 AND password = $2`, username, password).Scan(&id)
-	if err != nil {
-		return 0, err
-	}
-	return id, nil
-}
-
 func (r *AuthPostgres) CreateUser(user models.AuthRequest) (int, error) {
 	query := `INSERT INTO "user" (username, password) VALUES ($1, $2) RETURNING id`
 	var id int
@@ -56,7 +47,7 @@ func (r *AuthPostgres) CreateUser(user models.AuthRequest) (int, error) {
 func (r *AuthPostgres) AddCoins(user_wallet models.Wallet) error {
 	coins := 1000
 	query := `INSERT INTO wallet (user_id, coins) VALUES ($1, $2)`
-	_, err := r.db.Exec(query, user_wallet.Employee_id, coins)
+	_, err := r.db.Exec(query, user_wallet.User_id, coins)
 	if err != nil {
 		return err
 	}

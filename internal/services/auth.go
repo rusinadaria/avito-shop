@@ -55,7 +55,7 @@ func (s *AuthService) CreateUser(username string, password string) (int, error) 
 	}
 
 	user_wallet := models.Wallet {
-		Employee_id: id,
+		User_id: id,
 	}
 	err = s.repo.AddCoins(user_wallet)
 	if err != nil {

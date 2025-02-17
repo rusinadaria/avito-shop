@@ -12,7 +12,7 @@ type AuthRequest struct {
 
 type Wallet struct {
 	Id int
-	Employee_id int
+	User_id int
 	Coins int
 }
 
