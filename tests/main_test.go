@@ -18,6 +18,7 @@ type APITestSuite struct {
 	services *services.Service
 	repos *repository.Repository
 	token    string
+	token_two_user string
 }
 
 func TestAPISuite(t *testing.T) {
@@ -27,14 +28,15 @@ func TestAPISuite(t *testing.T) {
 func (s *APITestSuite) SetupSuite() {
 	connStr := "user=postgres password=root dbname=test_shop sslmode=disable"
 	// connStr := os.Getenv("user=postgres password=root dbname=test_shop sslmode=disable")
-
 	db, err := sql.Open("postgres", connStr)
 	s.db = db
 	if err != nil {
 		s.FailNow("Failed connect database", err)
 	}
 
-	s.initDeps()	
+	s.initDeps()
+	// s.createTestUsers()
+	// s.createTestTwoUsers()	
 }
 
 func (s *APITestSuite) TearDownSuite() {

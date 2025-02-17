@@ -5,56 +5,55 @@ import (
 	"net/http"
 	"encoding/json"
 	"avito-shop/models"
-	// "avito-shop/internal/repository"
 	"bytes"
 	"github.com/stretchr/testify/assert"
 )
 
-func (s *APITestSuite) TestLoginAndGetToken() {
-	loginRequest := models.AuthRequest{
+func (s *APITestSuite) TestcreateTestUsers() {
+	sender := models.AuthRequest{
 		Username: "sender_username",
 		Password: "12345",
 	}
 
-	requestBody, err := json.Marshal(loginRequest)
+	requestBody, err := json.Marshal(sender)
 	assert.NoError(s.T(), err)
 
 	req, err := http.NewRequest("POST", "/api/auth", bytes.NewBuffer(requestBody))
 	assert.NoError(s.T(), err)
 
+	req.AddCookie(&http.Cookie{Name: "auth_token", Value: s.token})
+
+
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(s.handler.AddUserHandler)
 
 	handler.ServeHTTP(rr, req)
-
 	assert.Equal(s.T(), http.StatusOK, rr.Code)
-
-	var response struct {
-		Token string `json:"token"`
-	}
-	err = json.NewDecoder(rr.Body).Decode(&response)
-	assert.NoError(s.T(), err)
-
-	// return response.Token
-	s.token = response.Token
 }
 
-func (s *APITestSuite) createTestUsers() {
-	sender := models.AuthRequest{
-		Username: "sender_username",
-		Password: "12345",
-	}
-	// Создание пользователя в базе
-	_, err := s.repos.CreateUser(sender)
-	assert.NoError(s.T(), err)
-
+func (s *APITestSuite) TestcreateTestTwoUsers() {
 	recipient := models.AuthRequest{
 		Username: "recipient_username",
 		Password: "12345",
 	}
-	_, err = s.repos.CreateUser(recipient)
+
+	requestBody, err := json.Marshal(recipient)
 	assert.NoError(s.T(), err)
+
+	req, err := http.NewRequest("POST", "/api/auth", bytes.NewBuffer(requestBody))
+	assert.NoError(s.T(), err)
+
+	req.AddCookie(&http.Cookie{Name: "auth_token", Value: s.token_two_user})
+
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(s.handler.AddUserHandler)
+
+	handler.ServeHTTP(rr, req)
+	assert.Equal(s.T(), http.StatusOK, rr.Code)
+	
 }
+
 
 func (s *APITestSuite) TestSendCoins() {
 	sendCoinRequest := models.SendCoinRequest{
@@ -83,6 +82,7 @@ func (s *APITestSuite) TestSendCoins() {
 	s.checkCoinBalances("sender_username", "recipient_username", 100)
 }
 
+
 func (s *APITestSuite) checkCoinBalances(senderUsername, recipientUsername string, amount int) {
 	senderBalance, err := s.getUserBalance(senderUsername)
 	assert.NoError(s.T(), err, "Failed to get sender balance")
@@ -102,4 +102,18 @@ func (s *APITestSuite) getUserBalance(username string) (int, error) {
 		return 0, err
 	}
 	return balance, nil
+}
+
+func (s *APITestSuite) TestBuyItem() {
+	req, err := http.NewRequest("GET", "/api/buy/powerbank", nil)
+	assert.NoError(s.T(), err)
+
+	req.AddCookie(&http.Cookie{Name: "auth_token", Value: s.token})
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(s.handler.BuyItemHandler)
+
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(s.T(), http.StatusOK, rr.Code)
 }
