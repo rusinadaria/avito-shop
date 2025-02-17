@@ -10,6 +10,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"net/http"
+	"errors"
 )
 
 func TestHandler_BuyItemHandler(t *testing.T) {
@@ -31,6 +32,15 @@ func TestHandler_BuyItemHandler(t *testing.T) {
 			expectedStatusCode: 200,
 			expectedRequestBody: ``,
 		},
+		{
+			name: "INCORRECT VALUE",
+			inputBody: ``,
+			mockBehavior: func(s *mock_services.MockTransaction, userId int) {
+				s.EXPECT().BuyItem(userId, "incorect_value").Return(errors.New("Не возможно приобрести товар"))
+			},
+			expectedStatusCode: 500,
+			expectedRequestBody: `{"errors":"Не возможно приобрести товар"}` + "\n",
+		},
 	}
 
 	for _, testCase := range testTable {
@@ -51,7 +61,13 @@ func TestHandler_BuyItemHandler(t *testing.T) {
 			r.Get("/api/buy/{item}", handler.BuyItemHandler)
 
 			w := httptest.NewRecorder()
-			req := httptest.NewRequest("GET", "/api/buy/hoody", bytes.NewBufferString(testCase.inputBody))
+			var req *http.Request
+
+			if testCase.name == "INCORRECT VALUE" {
+				req = httptest.NewRequest("GET", "/api/buy/incorect_value", bytes.NewBufferString(testCase.inputBody))
+			} else {
+				req = httptest.NewRequest("GET", "/api/buy/hoody", bytes.NewBufferString(testCase.inputBody))
+			}
 
 			req.AddCookie(&http.Cookie{Name: "auth_token", Value: "some_valid_token"})
 
