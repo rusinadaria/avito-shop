@@ -24,7 +24,7 @@ func LoggerMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
             slog.Int("content_length", lrw.contentLength),
             slog.String("referer", r.Referer()),
             slog.String("user_agent", r.UserAgent()),
-            slog.Duration("duration", time.Since(start)),
+            slog.Int64("duration", time.Since(start).Milliseconds()),
         )
     })
 }
