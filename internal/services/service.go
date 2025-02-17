@@ -5,6 +5,8 @@ import (
 	"avito-shop/models"
 )
 
+//go:generate mockgen -source=service.go -destination=mocks/mock.go
+
 type Auth interface {
 	CreateUser(username string, password string) (int, error)
 	GenerateToken(userId int) (string, error)
