@@ -7,7 +7,7 @@ CREATE TABLE "user" (
 CREATE TABLE wallet (
     id SERIAL PRIMARY KEY,
     user_id INT,
-    coins INT,
+    coins INT CHECK (coins >= 0),
     FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE CASCADE
 );
 
@@ -29,7 +29,7 @@ CREATE TABLE transaction (
     id SERIAL PRIMARY KEY,
     from_user INT,
     to_user INT,
-    amount INT,
+    amount INT CHECK (amount >= 0),
     created_at TIMESTAMP DEFAULT NOW(),
     FOREIGN KEY (from_user) REFERENCES "user" (id) ON DELETE CASCADE,
     FOREIGN KEY (to_user) REFERENCES "user" (id) ON DELETE CASCADE
