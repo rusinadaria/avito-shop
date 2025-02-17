@@ -21,7 +21,7 @@ func TestHandler_AddUserHandler(t *testing.T) {
 		inputUser models.AuthRequest
 		mockBehavior mockBehavior
 		expectedStatusCode int
-		expectedRequestBody string
+		expectedResponseBody string
 	} {
 		{
 			name: "OK",
@@ -36,7 +36,7 @@ func TestHandler_AddUserHandler(t *testing.T) {
 				s.EXPECT().GenerateToken(1).Return("token", nil)
 			},
 			expectedStatusCode: 200,
-			expectedRequestBody: ``,
+			expectedResponseBody: ``,
 		},
 	}
 
@@ -60,7 +60,7 @@ func TestHandler_AddUserHandler(t *testing.T) {
 			r.ServeHTTP(w, req)
 
 			assert.Equal(t, testCase.expectedStatusCode, w.Code)
-			assert.Equal(t, testCase.expectedRequestBody, w.Body.String())
+			assert.Equal(t, testCase.expectedResponseBody, w.Body.String())
 		})
 	}
 }

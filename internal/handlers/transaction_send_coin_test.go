@@ -11,6 +11,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"net/http"
+	"errors"
 )
 
 func TestHandler_SendHandler(t *testing.T) {
@@ -22,7 +23,7 @@ func TestHandler_SendHandler(t *testing.T) {
 		inputUser models.SendCoinRequest
 		mockBehavior mockBehavior
 		expectedStatusCode int
-		expectedRequestBody string
+		expectedResponseBody string
 	} {
 		{
 			name: "OK",
@@ -35,7 +36,20 @@ func TestHandler_SendHandler(t *testing.T) {
 				s.EXPECT().SendCoin(userId, req.ToUser, req.Amount).Return(nil)
 			},
 			expectedStatusCode: 200,
-			expectedRequestBody: ``,
+			expectedResponseBody: ``,
+		},
+		{
+			name: "NEGATIVE QUANITY",
+			inputBody: `{"toUser":"test_user", "amount":-50}`,
+			inputUser: models.SendCoinRequest {
+				ToUser: "test_user",
+				Amount: -50,
+			},
+			mockBehavior: func(s *mock_services.MockTransaction, userId int, req models.SendCoinRequest) {
+				s.EXPECT().SendCoin(userId, req.ToUser, req.Amount).Return(errors.New("Не возможно отпрвить монетки"))
+			},
+			expectedStatusCode: 500,
+			expectedResponseBody: `{"errors":"Ошибка при попытке отправить коины"}` + "\n",
 		},
 	}
 
@@ -64,7 +78,7 @@ func TestHandler_SendHandler(t *testing.T) {
 			r.ServeHTTP(w, req)
 
 			assert.Equal(t, testCase.expectedStatusCode, w.Code)
-			assert.Equal(t, testCase.expectedRequestBody, w.Body.String())
+			assert.Equal(t, testCase.expectedResponseBody, w.Body.String())
 		})
 	}
 }

@@ -21,7 +21,7 @@ func TestHandler_BuyItemHandler(t *testing.T) {
 		inputBody string
 		mockBehavior mockBehavior
 		expectedStatusCode int
-		expectedRequestBody string
+		expectedResponseBody string
 	} {
 		{
 			name: "OK",
@@ -30,7 +30,7 @@ func TestHandler_BuyItemHandler(t *testing.T) {
 				s.EXPECT().BuyItem(userId, "hoody").Return(nil)
 			},
 			expectedStatusCode: 200,
-			expectedRequestBody: ``,
+			expectedResponseBody: ``,
 		},
 		{
 			name: "INCORRECT VALUE",
@@ -39,7 +39,7 @@ func TestHandler_BuyItemHandler(t *testing.T) {
 				s.EXPECT().BuyItem(userId, "incorect_value").Return(errors.New("Не возможно приобрести товар"))
 			},
 			expectedStatusCode: 500,
-			expectedRequestBody: `{"errors":"Не возможно приобрести товар"}` + "\n",
+			expectedResponseBody: `{"errors":"Не возможно приобрести товар"}` + "\n",
 		},
 	}
 
@@ -48,13 +48,13 @@ func TestHandler_BuyItemHandler(t *testing.T) {
 			c := gomock.NewController(t)
 			defer c.Finish()
 
-			buyItem := mock_services.NewMockTransaction(c)
-			testCase.mockBehavior(buyItem, 1)
+			transaction := mock_services.NewMockTransaction(c)
+			testCase.mockBehavior(transaction, 1)
 
 			auth := mock_services.NewMockAuth(c)
 			auth.EXPECT().ParseToken("some_valid_token").Return(1, nil)
 
-			services := &services.Service{Transaction: buyItem, Auth: auth}
+			services := &services.Service{Transaction: transaction, Auth: auth}
 			handler := NewHandler(services)
 
 			r := chi.NewRouter()
@@ -71,11 +71,10 @@ func TestHandler_BuyItemHandler(t *testing.T) {
 
 			req.AddCookie(&http.Cookie{Name: "auth_token", Value: "some_valid_token"})
 
-
 			r.ServeHTTP(w, req)
 
 			assert.Equal(t, testCase.expectedStatusCode, w.Code)
-			assert.Equal(t, testCase.expectedRequestBody, w.Body.String())
+			assert.Equal(t, testCase.expectedResponseBody, w.Body.String())
 		})
 	}
 }
